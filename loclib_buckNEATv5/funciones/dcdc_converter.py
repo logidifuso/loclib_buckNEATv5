@@ -332,6 +332,153 @@ class BuckClass:
         simul_results = self.run_buck_simulation_l1a_5i_pid(net)
         self.plot_respuesta_buck_l1(simul_results, tinic, tfinal, view, filename)
 
+    # --------------------------------------------------------------------------------- #
+    # -------------------------- Level 1a - l1a_6i    ------------------------------------ #
+    # --------------------------------------------------------------------------------- #
+    def eval_genomes_mp_buck_l1a_6i(self, genomes, config):
+
+        net = neat.nn.FeedForwardNetwork.create(genomes, config)
+        genomes.fitness = BuckClass.fitness_buck_l1a_6i(self, net)
+        return genomes.fitness
+
+    def eval_genomes_single_buck_l1a_6i(self, genomes, config):
+        # single process
+        for genome_id, genome in genomes:
+            # net = RecurrentNet.create(genome, config,1)
+            net = neat.nn.FeedForwardNetwork.create(genome, config)
+            genome.fitness = BuckClass.fitness_buck_l1a_6i(self, net)
+
+    def fitness_buck_l1a_6i(self, net):
+        """
+        Función que evalúa el fitness del fenotipo producido  dada una cierta ANN
+        :param net:
+        :return fitness: El fitness se calcula como 1/e**(-error_total). De esta forma cuando
+        el error total es cero el fitness es 1 y conforme aumenta el fitness
+        disminuye tendiendo a cero cuando el error tiende infinito
+        """
+        vout = self.run_buck_simulation_l1a_6i(net)[1]
+        error = (vout - self.target_vout)
+        error[0:self.steady] = 0
+        error = np.absolute(error)
+        error_tot = error.sum() / self.steps
+        return np.exp(-error_tot)
+
+    def run_buck_simulation_l1a_6i(self, net):
+
+        steps = self.steps + self.steady
+
+        i_lout_record = np.zeros(steps)
+        vout_record = np.ones(steps) * self.v_out
+        duty_record = np.zeros(steps+1)
+
+        u_i = 0
+        # Ejecuta la simulación
+        for i in range(2, steps-1):
+            duty_record[i] = self.duty
+
+            # Aplica la salida de RN y obtiene nuevo estado. En realidad no hace falta
+            # pasar self.duty, puedo leerlo dentro de buck_status_update pero por claridad...
+            self.buck_status_update_l1a(self.sequence_vin[i],
+                                        self.sequence_rload[i],
+                                        self.duty)
+
+            # Activa la RN y obtiene su salida
+            output_ann = net.activate([self.sequence_rload[i],
+                                       self.v_out,
+                                       vout_record[i-1],  # ])[0]
+                                       vout_record[i-2],
+                                       self.i_lout,
+                                       i_lout_record[i-1]])[0]   # self.x2,
+
+            # TODO: Ojo!! si sigo sumando 0.5, hay que cambiar la función de activación a tanh
+            self.duty = 0.5 + output_ann
+            self.duty = min(max(self.duty, 0.01), 0.99)
+
+            # Record estado
+            i_lout_record[i] = self.i_lout
+            vout_record[i] = self.v_out
+
+        return i_lout_record, vout_record, duty_record
+
+    # Graficado de los resultados
+    def plot_respuesta_buck_l1a_6i(self, net, tinic=0, tfinal=None, view=False, filename='salida.svg'):
+        simul_results = self.run_buck_simulation_l1a_6i(net)
+        self.plot_respuesta_buck_l1(simul_results, tinic, tfinal, view, filename)
+
+    # --------------------------------------------------------------------------------- #
+    # -------------------------- Level 1a - l1a_7i    ------------------------------------ #
+    # --------------------------------------------------------------------------------- #
+    def eval_genomes_mp_buck_l1a_7i(self, genomes, config):
+
+        net = neat.nn.FeedForwardNetwork.create(genomes, config)
+        genomes.fitness = BuckClass.fitness_buck_l1a_7i(self, net)
+        return genomes.fitness
+
+    def eval_genomes_single_buck_l1a_7i(self, genomes, config):
+        # single process
+        for genome_id, genome in genomes:
+            # net = RecurrentNet.create(genome, config,1)
+            net = neat.nn.FeedForwardNetwork.create(genome, config)
+            genome.fitness = BuckClass.fitness_buck_l1a_7i(self, net)
+
+    def fitness_buck_l1a_7i(self, net):
+        """
+        Función que evalúa el fitness del fenotipo producido  dada una cierta ANN
+        :param net:
+        :return fitness: El fitness se calcula como 1/e**(-error_total). De esta forma cuando
+        el error total es cero el fitness es 1 y conforme aumenta el fitness
+        disminuye tendiendo a cero cuando el error tiende infinito
+        """
+        vout = self.run_buck_simulation_l1a_7i(net)[1]
+        error = (vout - self.target_vout)
+        error[0:self.steady] = 0
+        error = np.absolute(error)
+        error_tot = error.sum() / self.steps
+        return np.exp(-error_tot)
+
+    def run_buck_simulation_l1a_7i(self, net):
+
+        steps = self.steps + self.steady
+
+        i_lout_record = np.zeros(steps)
+        vout_record = np.ones(steps) * self.v_out
+        duty_record = np.zeros(steps+1)
+
+        u_i = 0
+        # Ejecuta la simulación
+        for i in range(2, steps-1):
+            duty_record[i] = self.duty
+
+            # Aplica la salida de RN y obtiene nuevo estado. En realidad no hace falta
+            # pasar self.duty, puedo leerlo dentro de buck_status_update pero por claridad...
+            self.buck_status_update_l1a(self.sequence_vin[i],
+                                        self.sequence_rload[i],
+                                        self.duty)
+
+            # Activa la RN y obtiene su salida
+            output_ann = net.activate([self.sequence_rload[i],
+                                       self.v_out,
+                                       vout_record[i-1],  # ])[0]
+                                       vout_record[i-2],
+                                       self.i_lout,
+                                       i_lout_record[i-1],
+                                       i_lout_record[i-2]])[0]   # self.x2,
+
+            # TODO: Ojo!! si sigo sumando 0.5, hay que cambiar la función de activación a tanh
+            self.duty = 0.5 + output_ann
+            self.duty = min(max(self.duty, 0.01), 0.99)
+
+            # Record estado
+            i_lout_record[i] = self.i_lout
+            vout_record[i] = self.v_out
+
+        return i_lout_record, vout_record, duty_record
+
+    # Graficado de los resultados
+    def plot_respuesta_buck_l1a_7i(self, net, tinic=0, tfinal=None, view=False, filename='salida.svg'):
+        simul_results = self.run_buck_simulation_l1a_7i(net)
+        self.plot_respuesta_buck_l1(simul_results, tinic, tfinal, view, filename)
+
     # ==============================================================================================
     #               Funciones de uso general por los diferentes "sub-modelos"
     # ==============================================================================================
